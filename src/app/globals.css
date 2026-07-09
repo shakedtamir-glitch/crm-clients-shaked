@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --surface-0: #0a0a0c;
+  --surface-1: #111114;
+  --surface-2: #17171b;
+  --surface-3: #1f1f24;
+  --border: #26262c;
+  --border-strong: #33333a;
+
+  --text-0: #f4f4f5;
+  --text-1: #d4d4d8;
+  --text-2: #9a9aa3;
+  --text-3: #6b6b74;
+
+  --accent: #7c5cff;
+  --accent-strong: #8f72ff;
+  --accent-soft: rgba(124, 92, 255, 0.14);
+
+  --success: #2fd680;
+  --success-soft: rgba(47, 214, 128, 0.14);
+  --warning: #ffb648;
+  --warning-soft: rgba(255, 182, 72, 0.14);
+  --danger: #ff5c72;
+  --danger-soft: rgba(255, 92, 114, 0.14);
+  --info: #4fb8ff;
+  --info-soft: rgba(79, 184, 255, 0.14);
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.light {
+  --surface-0: #f7f7f8;
+  --surface-1: #ffffff;
+  --surface-2: #f2f2f4;
+  --surface-3: #e9e9ec;
+  --border: #e4e4e8;
+  --border-strong: #d3d3da;
+
+  --text-0: #17171a;
+  --text-1: #3f3f46;
+  --text-2: #71717a;
+  --text-3: #a1a1aa;
+
+  --accent-soft: rgba(124, 92, 255, 0.1);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 4px 16px rgba(20, 20, 30, 0.06);
+}
+
+@theme inline {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text-0: var(--text-0);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+html.light {
+  color-scheme: light;
+}
+
+body {
+  background: var(--surface-0);
+  color: var(--text-0);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-0);
+}
+
+/* Thin, unobtrusive scrollbars for a premium feel */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out;
+}

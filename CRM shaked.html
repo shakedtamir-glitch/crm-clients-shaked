@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Shaked</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #e0e7ff;
+  --bg: #f1f5f9;
+  --white: #ffffff;
+  --sidebar: #0f172a;
+  --sidebar-hover: rgba(255,255,255,.07);
+  --sidebar-active: rgba(99,102,241,.25);
+  --text: #1e293b;
+  --text-2: #64748b;
+  --text-3: #94a3b8;
+  --border: #e2e8f0;
+  --card-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --card-shadow-hover: 0 4px 12px rgba(0,0,0,.1);
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',sans-serif;color:var(--text);font-size:13px;-webkit-font-smoothing:antialiased}
+
+/* ── LAYOUT ── */
+.wrap{display:flex;height:100vh;overflow:hidden;direction:rtl}
+.main{flex:1;overflow-y:auto;background:var(--bg);min-width:0;position:relative}
+.page{display:none;padding:20px}.page.active{display:block}
+
+/* ── SIDEBAR ── */
+.sb{width:200px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;position:relative;overflow:hidden}
+.sb::before{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;border-radius:50%;background:rgba(99,102,241,.12);pointer-events:none}
+.sb-brand{padding:18px 16px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo{width:30px;height:30px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;box-shadow:0 2px 8px rgba(99,102,241,.4)}
+.sb-title{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.sb-sub{font-size:9px;color:rgba(255,255,255,.35);margin-top:1px;letter-spacing:.3px;text-transform:uppercase}
+.sb-nav{padding:10px 8px;flex:1;display:flex;flex-direction:column;gap:2px}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 10px;cursor:pointer;color:rgba(255,255,255,.45);font-size:12px;font-weight:500;border-radius:8px;transition:all .15s;position:relative}
+.ni:hover{color:rgba(255,255,255,.85);background:var(--sidebar-hover)}
+.ni.active{background:var(--sidebar-active);color:#fff}
+.ni .ni-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.ni-badge{background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:700;margin-right:auto;display:none}
+.ni-badge.show{display:inline-block}
+.sb-foot{padding:10px 12px;border-top:1px solid rgba(255,255,255,.05)}
+.sb-status{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.3)}
+.dot{width:6px;height:6px;border-radius:50%;background:#34d399;flex-shrink:0;transition:background .3s}
+.dot.saving{background:var(--yellow);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── PAGE HEADER ── */
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.ph-t{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.ph-s{font-size:12px;color:var(--text-2);margin-top:2px}
+
+/* ── METRIC CARDS ── */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.mc{background:var(--white);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--card-shadow);position:relative;overflow:hidden;transition:box-shadow .2s}
+.mc:hover{box-shadow:var(--card-shadow-hover)}
+.mc::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 3px 3px 0}
+.mc.c-primary::after{background:var(--primary)}
+.mc.c-green::after{background:var(--green)}
+.mc.c-yellow::after{background:var(--yellow)}
+.mc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
+.mc.c-primary .mc-icon{background:var(--primary-light)}
+.mc.c-green .mc-icon{background:#d1fae5}
+.mc.c-yellow .mc-icon{background:#fef3c7}
+.mc-l{font-size:10px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.mc-v{font-size:24px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.5px}
+.mc-s{font-size:10px;color:var(--text-3);margin-top:4px}
+
+/* ── ALERTS ── */
+.alerts{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.al{display:flex;align-items:center;gap:10px;background:var(--white);border-radius:var(--radius-sm);padding:10px 14px;box-shadow:var(--card-shadow);border-right:3px solid var(--yellow);animation:fadeIn .2s ease}
+.al.urgent{border-right-color:var(--red)}
+.al.dormant{border-right-color:var(--purple)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.al-icon{font-size:15px;flex-shrink:0}
+.al-t{flex:1;font-size:11px;color:var(--text-2);line-height:1.4}
+.al-t strong{color:var(--text);font-weight:600}
+.al-a{font-size:10px;color:var(--primary);cursor:pointer;font-weight:600;white-space:nowrap;padding:4px 8px;background:var(--primary-light);border-radius:6px;transition:background .15s}
+.al-a:hover{background:#c7d2fe}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--card-shadow);overflow:hidden;margin-bottom:14px}
+.ch{padding:14px 18px;border-bottom:1px solid #f8fafc;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ct{font-size:12px;font-weight:700;color:var(--text);letter-spacing:-.2px}
+.cw{height:160px;padding:12px 14px}
+
+/* ── BOTTOM BOXES ── */
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.box{background:var(--white);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--card-shadow)}
+.box-l{font-size:10px;color:var(--primary);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.box-v{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+.box-s{font-size:10px;color:var(--text-3);margin-top:3px}
+.ren-item{font-size:11px;color:var(--text-2);padding:4px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:6px}
+.ren-item:last-child{border:none}
+.ren-item strong{color:var(--text)}
+
+/* ── TABLE ── */
+.tb-bar{padding:10px 14px;border-bottom:1px solid #f8fafc;display:flex;gap:8px;align-items:center}
+.si{flex:1;background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text);outline:none;transition:border-color .15s}
+.si:focus{border-color:var(--primary);background:#fff}
+.si::placeholder{color:var(--text-3)}
+.ba{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.ba:hover{background:var(--primary-dark)}
+.bs{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--text-2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.bs:hover{border-color:var(--primary);color:var(--primary)}
+
+.tabs{display:flex;border-bottom:1.5px solid #f1f5f9;padding:0 14px;overflow-x:auto;gap:2px}
+.tab{padding:9px 12px;font-size:11px;font-weight:600;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;white-space:nowrap;transition:all .15s}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:right;padding:9px 14px;font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;font-weight:600;border-bottom:1.5px solid #f1f5f9;white-space:nowrap;background:#fafbfc}
+td{padding:11px 14px;border-bottom:1px solid #f8fafc;font-size:12px;color:var(--text-2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .1s}
+tbody tr:hover td{background:#fafbff;cursor:pointer}
+
+.cc{display:flex;align-items:center;gap:9px}
+.av{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:#fff;letter-spacing:.5px}
+.cn{font-weight:600;color:var(--text);font-size:12px}
+.cy{font-size:10px;color:var(--text-3);margin-top:1px}
+.mono{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.cost{font-weight:700;color:var(--text);font-size:12px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;white-space:nowrap;letter-spacing:.2px}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%}
+.b-active{background:#d1fae5;color:#065f46}.b-active::before{background:#10b981}
+.b-past{background:#f1f5f9;color:#475569}.b-past::before{background:#94a3b8}
+.b-hold{background:#fef3c7;color:#92400e}.b-hold::before{background:#f59e0b}
+.b-plan{background:#ede9fe;color:#5b21b6}.b-plan::before{background:#8b5cf6}
+
+.exp-s td{background:#fffbeb!important}
+.exp-u td{background:#fff1f2!important}
+.empty{text-align:center;padding:32px;color:var(--text-3);font-size:12px}
+
+/* ── REVENUE PAGE ── */
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── DETAIL PANEL ── */
+.det{display:none;position:absolute;top:0;left:0;bottom:0;width:260px;background:var(--white);border-left:1px solid var(--border);z-index:50;overflow-y:auto;box-shadow:-4px 0 16px rgba(0,0,0,.06);animation:slideIn .18s ease}
+.det.open{display:block}
+@keyframes slideIn{from{transform:translateX(-12px);opacity:0}to{transform:none;opacity:1}}
+.dh{padding:16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f8faff,#fff)}
+.dav{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.dname{font-size:14px;font-weight:700;color:var(--text);line-height:1}
+.dcountry{font-size:10px;color:var(--text-3);margin-top:3px}
+.dc-btn{margin-right:auto;background:#f1f5f9;border:none;width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--text-2);transition:background .15s}
+.dc-btn:hover{background:#e2e8f0}
+.db{padding:14px}
+.dsec{margin-bottom:14px}
+.dst{font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:11px}
+.dr:last-child{border:none}
+.dk{color:var(--text-3);font-weight:500}
+.dv{font-weight:600;color:var(--text)}
+.pw{background:#f1f5f9;border-radius:100px;height:5px;margin-top:6px;overflow:hidden}
+.pf{height:100%;border-radius:100px;transition:width .3s ease}
+.dpct{font-size:10px;color:var(--text-2);margin-top:4px}
+.dn2{background:#f8fafc;border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-2);line-height:1.6;min-height:36px}
+.df{padding:12px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px}
+.btn-renew{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;flex:1;transition:background .15s}
+.btn-renew:hover{background:var(--primary-dark)}
+.btn-edit{background:#f1f5f9;border:none;border-radius:8px;padding:8px 14px;font-size:11px;color:var(--text-2);cursor:pointer;flex:1;transition:background .15s;font-weight:600}
+.btn-edit:hover{background:#e2e8f0}
+
+/* ── MODAL ── */
+.mbg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.mbg.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:0;width:min(440px,92%);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:modalUp .18s ease}
+@keyframes modalUp{from{transform:translateY(10px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.mhead{padding:18px 20px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
+.mt{font-size:15px;font-weight:700;color:var(--text)}
+.mx{background:#f1f5f9;border:none;width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-2);transition:background .15s}
+.mx:hover{background:#e2e8f0}
+.mbody{padding:18px 20px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ff{grid-column:1/-1}
+.fl{display:block;font-size:10px;color:var(--text-2);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.fi,.fs{width:100%;background:#f8fafc;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);outline:none;transition:all .15s;direction:rtl}
+.fi:focus,.fs:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.08)}
+.mfoot{padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.bc{background:transparent;border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;color:var(--text-2);font-size:12px;cursor:pointer;font-weight:500}
+.bsv{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s}
+.bsv:hover{background:var(--primary-dark)}
+.bd{background:transparent;border:1.5px solid #fca5a5;border-radius:8px;padding:7px 12px;color:#dc2626;font-size:11px;cursor:pointer;margin-left:auto;font-weight:600}
+.bd:hover{background:#fff1f2}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--sidebar);color:#fff;border-radius:10px;padding:9px 18px;font-size:12px;display:none;z-index:200;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2);gap:7px;align-items:center}
+.toast.show{display:flex}
+
+/* ── EMAIL BANNER ── */
+.email-banner{display:none;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;color:#fff;align-items:center;gap:12px;animation:fadeIn .3s ease}
+.email-banner.show{display:flex}
+.eb-icon{font-size:22px;flex-shrink:0}
+.eb-txt{flex:1}
+.eb-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.eb-sub{font-size:11px;opacity:.8}
+.eb-btn{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+.eb-btn:hover{background:rgba(255,255,255,.3)}
+.eb-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:16px;cursor:pointer;padding:2px 6px}
+
+/* ── EMAIL REPORT MODAL ── */
+.email-modal{background:#fff;border-radius:16px;width:min(500px,92%);max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:modalUp .18s ease}
+.em-head{background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:20px;border-radius:16px 16px 0 0;color:#fff}
+.em-title{font-size:16px;font-weight:700;margin-bottom:4px}
+.em-sub{font-size:12px;opacity:.8}
+.em-body{padding:20px}
+.em-section{margin-bottom:16px;padding:14px;background:#f8fafc;border-radius:10px}
+.em-sec-title{font-size:10px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.em-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;color:var(--text-2);border-bottom:1px solid #f1f5f9}
+.em-item:last-child{border:none}
+.em-item strong{color:var(--text)}
+.em-item .av{width:22px;height:22px;font-size:8px;border-radius:6px}
+.em-footer{padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;gap:8px;justify-content:flex-end}
+.em-send{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer}
+.em-dismiss{background:#f1f5f9;border:none;border-radius:8px;padding:9px 16px;font-size:12px;color:var(--text-2);cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ── SIDEBAR ── -->
+<div class="sb">
+  <div class="sb-brand">
+    <div class="sb-logo">💪</div>
+    <div>
+      <div class="sb-title">Shaked CRM</div>
+      <div class="sb-sub">Coach Pro</div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="ni active" onclick="goPage('dash',this)">
+      <span class="ni-icon">⊞</span> לוח בקרה
+      <span class="ni-badge" id="nb">0</span>
+    </div>
+    <div class="ni" onclick="goPage('clients',this)">
+      <span class="ni-icon">◈</span> מתאמנים
+    </div>
+    <div class="ni" onclick="goPage('revenue',this)">
+      <span class="ni-icon">◇</span> הכנסות
+    </div>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-status">
+      <div class="dot" id="sd"></div>
+      <span id="stxt">טוען...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dash" class="page active">
+    <div class="ph">
+      <div>
+        <div class="ph-t" id="dash-title">לוח בקרה</div>
+        <div class="ph-s" id="dash-sub"></div>
+      </div>
+    </div>
+    <div class="email-banner" id="email-banner">
+      <div class="eb-icon">📬</div>
+      <div class="eb-txt">
+        <div class="eb-title">דוח חודשי מוכן לשליחה</div>
+        <div class="eb-sub" id="eb-sub">סיכום חודש למייל שלך</div>
+      </div>
+      <button class="eb-btn" onclick="openEmailReport()">שלח דוח 📧</button>
+      <button class="eb-close" onclick="dismissEmailBanner()" title="סגור">✕</button>
+    </div>
+    <div class="alerts" id="alerts"></div>
+    <div class="metrics" id="metrics"></div>
+    <div class="card">
+      <div class="ch"><span class="ct">📊 הכנסות לפי חודש קבלה</span></div>
+      <div class="cw"><canvas id="rc" role="img" aria-label="גרף הכנסות"></canvas></div>
+    </div>
+    <div class="bottom-grid">
+      <div class="box">
+        <div class="box-l" id="fc-l">הכנסה החודש</div>
+        <div class="box-v" id="fc-v">€0</div>
+        <div class="box-s" id="fc-s">0 תשלומים</div>
+      </div>
+      <div class="box">
+        <div class="box-l">📅 חידושים קרובים</div>
+        <div id="ren"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div id="page-clients" class="page">
+    <div class="ph">
+      <div>
+        <div class="ph-t">מתאמנים</div>
+        <div class="ph-s" id="cl-l"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="bs" onclick="expCSV()">↓ ייצוא CSV</button>
+        <button class="ba" onclick="openM(null)">+ הוסף מתאמן</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tb-bar">
+        <input class="si" id="srch" type="text" placeholder="🔍  חיפוש לפי שם או מדינה..." oninput="renderC()">
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="setSec('active',this)">פעילים <span id="tc-active" style="opacity:.5"></span></div>
+        <div class="tab" onclick="setSec('plan',this)">תוכנית <span id="tc-plan" style="opacity:.5"></span></div>
+        <div class="tab" onclick="setSec('past',this)">עבר <span id="tc-past" style="opacity:.5"></span></div>
+        <div class="tab" onclick="setSec('hold',this)">קיפאון <span id="tc-hold" style="opacity:.5"></span></div>
+        <div class="tab" onclick="setSec('all',this)">הכל <span id="tc-all" style="opacity:.5"></span></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>מתאמן</th><th>עלות</th><th>חודש קבלה</th><th>תחילה</th><th>סיום</th><th>סטטוס</th><th>הערות</th><th></th>
+          </tr></thead>
+          <tbody id="ctb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- REVENUE -->
+  <div id="page-revenue" class="page">
+    <div class="ph"><div class="ph-t">הכנסות</div></div>
+    <div class="rev-grid">
+      <div class="card">
+        <div class="ch"><span class="ct">📅 הכנסה לפי חודש</span></div>
+        <table><thead><tr><th>חודש</th><th>מתאמנים</th><th>הכנסה</th></tr></thead>
+        <tbody id="rm"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">👤 הכנסה לפי מתאמן</span></div>
+        <table><thead><tr><th>מתאמן</th><th>שולם</th><th>סכום</th></tr></thead>
+        <tbody id="rc2"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="det" id="det">
+    <div class="dh">
+      <div class="dav" id="dav"></div>
+      <div>
+        <div class="dname" id="dname"></div>
+        <div class="dcountry" id="dcy"></div>
+      </div>
+      <button class="dc-btn" onclick="closeDet()">✕</button>
+    </div>
+    <div class="db">
+      <div class="dsec">
+        <div class="dst">פרטי חוזה</div>
+        <div class="dr"><span class="dk">עלות</span><span class="dv" id="dc"></span></div>
+        <div class="dr"><span class="dk">שווי €</span><span class="dv" id="de"></span></div>
+        <div class="dr"><span class="dk">אופן תשלום</span><span class="dv" id="dpt"></span></div>
+        <div class="dr"><span class="dk">תחילה</span><span class="dv" id="dstart"></span></div>
+        <div class="dr"><span class="dk">סיום</span><span class="dv" id="dend"></span></div>
+        <div class="dr"><span class="dk">משך</span><span class="dv" id="ddur"></span></div>
+        <div class="dr"><span class="dk">סטטוס</span><span class="dv" id="dstat"></span></div>
+      </div>
+      <div class="dsec" id="dprog-sec">
+        <div class="dst">התקדמות</div>
+        <div class="dpct" id="dpl"></div>
+        <div class="pw"><div class="pf" id="dpb"></div></div>
+      </div>
+      <div class="dsec">
+        <div class="dst">הערות</div>
+        <div class="dn2" id="dnotes"></div>
+      </div>
+    </div>
+    <div class="df">
+      <button class="btn-renew" onclick="renewC()">↺ חדש חוזה</button>
+      <button class="btn-edit" onclick="editDet()">✎ עריכה</button>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT MODAL -->
+  <div class="mbg" id="mbg" onclick="bgC(event)">
+    <div class="modal">
+      <div class="mhead">
+        <div class="mt" id="mttl">מתאמן חדש</div>
+        <button class="mx" onclick="closeM()">✕</button>
+      </div>
+      <div class="mbody">
+        <div class="fg">
+          <div class="ff"><label class="fl">שם מלא</label><input class="fi" id="fn" type="text" placeholder="שם המתאמן"></div>
+          <div><label class="fl">מדינה</label><input class="fi" id="fcy" type="text" placeholder="ישראל"></div>
+          <div><label class="fl">עלות</label><input class="fi" id="fc2" type="text" placeholder="1000€"></div>
+          <div><label class="fl">אופן תשלום</label>
+            <select class="fs" id="fpt">
+              <option value="full">מכה אחת (הכל בחודש ההתחלה)</option>
+              <option value="installments">תשלומים (לפי חודשים)</option>
+            </select>
+          </div>
+          <div><label class="fl">סטטוס</label>
+            <select class="fs" id="fst">
+              <option value="active">פעיל ✅</option>
+              <option value="plan">בניית תוכנית 🔮</option>
+              <option value="past">עבר ⏹</option>
+              <option value="hold">קיפאון ⏸</option>
+            </select>
+          </div>
+          <div><label class="fl">תאריך תחילה</label><input class="fi" id="fs2" type="date"></div>
+          <div><label class="fl">תאריך סיום</label><input class="fi" id="fe" type="date"></div>
+          <div class="ff"><label class="fl">הערות</label><input class="fi" id="fno" type="text" placeholder="הערות נוספות..."></div>
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="bd" id="bdel" onclick="delC()" style="display:none">🗑 מחק</button>
+        <button class="bc" onclick="closeM()">ביטול</button>
+        <button class="bsv" onclick="saveC()">💾 שמור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMAIL REPORT MODAL -->
+  <div class="mbg" id="email-mbg" onclick="bgEmailC(event)">
+    <div class="email-modal">
+      <div class="em-head">
+        <div class="em-title">📧 דוח חודשי — <span id="em-month"></span></div>
+        <div class="em-sub">תצוגה מקדימה לפני שליחה לאימייל שלך</div>
+      </div>
+      <div class="em-body" id="em-body"></div>
+      <div class="em-footer">
+        <button class="em-dismiss" onclick="closeEmailModal()">סגור</button>
+        <button class="em-send" onclick="sendMonthlyEmail()">📧 שלח למייל</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+</div>
+
+<script>
+const KEY = 'crm_v2';
+const EMAIL_KEY = 'crm_lastEmailMonth';
+const NEW_KEY = 'crm_newClients';
+const USER_EMAIL = 'shakedtamir@gmail.com';
+
+const SEED = [
+  {id:1,name:"Patrick (Germany)",country:"Germany",cost:"750€",status:"past",start:"2025-10-14",end:"2026-02-14",notes:""},
+  {id:2,name:"Simon",country:"Canada",cost:"733€",status:"past",start:"2025-10-16",end:"2026-02-16",notes:""},
+  {id:3,name:"Joao",country:"Netherlands",cost:"1000€",status:"active",start:"2025-10-24",end:"2026-06-24",notes:""},
+  {id:4,name:"Agustin",country:"Dubai",cost:"1000$",status:"active",start:"2026-01-20",end:"2026-05-20",notes:""},
+  {id:5,name:"Emil",country:"–",cost:"1500€",status:"active",start:"2026-04-02",end:"2026-10-02",notes:""},
+  {id:6,name:"Mattias",country:"–",cost:"1000$",status:"active",start:"2026-01-14",end:"2026-04-14",notes:""},
+  {id:7,name:"Idan Sem",country:"ישראל",cost:"1000₪",status:"active",start:"2026-03-28",end:"2026-04-28",notes:"להגדיל ל3 חודש"},
+  {id:8,name:"Timo",country:"Germany",cost:"750€",status:"past",start:"2025-11-13",end:"2026-03-13",notes:""},
+  {id:9,name:"Nathan",country:"Belgium",cost:"1500$",status:"active",start:"2025-12-03",end:"2026-06-03",notes:""},
+  {id:10,name:"Dmitry",country:"Italy",cost:"1000$",status:"past",start:"2025-12-25",end:"2026-03-25",notes:""},
+  {id:11,name:"Ben",country:"Australia",cost:"700€",status:"hold",start:null,end:null,notes:""},
+  {id:12,name:"Andreuhl",country:"Spain",cost:"1000$",status:"past",start:"2025-12-10",end:"2026-04-10",notes:""},
+  {id:13,name:"Luis",country:"Mexico",cost:"1500€",status:"active",start:"2026-01-31",end:"2026-07-31",notes:""},
+  {id:14,name:"Patrick Simoes",country:"–",cost:"1000€",status:"active",start:"2026-01-29",end:"2026-04-29",notes:""},
+  {id:15,name:"Tibo",country:"Belgium",cost:"1400€",status:"active",start:"2026-01-24",end:"2026-08-24",notes:""},
+];
+
+let clients = [], nid = 20, eid = null, did = null, sec = 'active', pg = 'dash', ch = null;
+
+/* ── UTILS ── */
+function setSave(s) {
+  const d = document.getElementById('sd'), t = document.getElementById('stxt');
+  d.className = 'dot' + (s === 'saving' ? ' saving' : '');
+  t.textContent = s === 'saving' ? 'שומר...' : 'נשמר ✓';
+}
+function eur(s) {
+  if (!s) return 0;
+  const n = parseFloat(s.replace(/[^0-9.]/g, ''));
+  if (isNaN(n)) return 0;
+  if (s.includes('₪')) return Math.round(n / 3.7);
+  if (s.includes('$')) return Math.round(n * 0.92);
+  return Math.round(n);
+}
+function mo(s, e) {
+  if (!s || !e) return 0;
+  const a = new Date(s + 'T00:00:00'), b = new Date(e + 'T00:00:00');
+  return Math.max(1, (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()));
+}
+function du(d) {
+  if (!d) return null;
+  return Math.round((new Date(d + 'T00:00:00') - new Date()) / 864e5);
+}
+function hm(k) {
+  return new Date(k + '-01').toLocaleDateString('he-IL', {month: 'long', year: 'numeric'});
+}
+function fd(d) {
+  return d ? new Date(d + 'T00:00:00').toLocaleDateString('he-IL', {day: 'numeric', month: 'short', year: '2-digit'}) : '–';
+}
+function ini(n) {
+  return n.split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+}
+const AV = ['#6366f1','#e05c3a','#059669','#d97706','#3b82f6','#ec4899','#10b981','#7c3aed','#ef4444','#06b6d4','#f97316','#0d9488','#a855f7','#65a30d','#0ea5e9'];
+function av(id) { return AV[(id - 1) % AV.length]; }
+function bdg(s) {
+  const m = {active: ['b-active','פעיל'], past: ['b-past','עבר'], hold: ['b-hold','קיפאון'], plan: ['b-plan','תוכנית']};
+  const [c, l] = m[s] || ['b-past', s];
+  return `<span class="badge ${c}">${l}</span>`;
+}
+
+/* ── DATA ── */
+function rec() {
+  const m = {};
+  clients.forEach(c => {
+    if (!c.start || !c.cost) return;
+    const total = eur(c.cost);
+    const months = c.payType === 'installments' ? mo(c.start, c.end) : 1;
+    if (c.payType === 'installments' && c.end && months > 1) {
+      const per = Math.round(total / months);
+      const sd = new Date(c.start + 'T00:00:00');
+      let allocated = 0;
+      for (let i = 0; i < months; i++) {
+        const d = new Date(sd.getFullYear(), sd.getMonth() + i, 1);
+        const k = d.toISOString().slice(0, 7);
+        const amt = (i === months - 1) ? (total - allocated) : per;
+        allocated += amt;
+        if (!m[k]) m[k] = {rev: 0, list: []};
+        m[k].rev += amt;
+        m[k].list.push(c);
+      }
+    } else {
+      const k = c.start.slice(0, 7);
+      if (!m[k]) m[k] = {rev: 0, list: []};
+      m[k].rev += total;
+      m[k].list.push(c);
+    }
+  });
+  return m;
+}
+
+function init() {
+  setSave('saving');
+  try {
+    const r = localStorage.getItem(KEY);
+    if (r) {
+      const d = JSON.parse(r);
+      if (d && d.length) { clients = d; nid = Math.max(...clients.map(c => c.id)) + 1; setSave('ok'); all(); setTimeout(rChart, 150); checkMonthlyEmail(); return; }
+    }
+  } catch(e) {}
+  clients = JSON.parse(JSON.stringify(SEED));
+  try { localStorage.setItem(KEY, JSON.stringify(clients)); } catch(e) {}
+  setSave('ok'); all(); setTimeout(rChart, 150); checkMonthlyEmail();
+}
+
+function save() {
+  setSave('saving');
+  try { localStorage.setItem(KEY, JSON.stringify(clients)); } catch(e) {}
+  setSave('ok');
+}
+
+/* ── METRICS ── */
+function rMetrics() {
+  const now = new Date(), ck = now.toISOString().slice(0, 7), r = rec();
+  const active = clients.filter(c => c.status === 'active').length;
+  const plan = clients.filter(c => c.status === 'plan').length;
+  const hold = clients.filter(c => c.status === 'hold').length;
+  const tm = r[ck]?.rev || 0, tn = r[ck]?.list.length || 0;
+  const tot = clients.filter(c => c.cost).reduce((a, c) => a + eur(c.cost), 0);
+  const mn = now.toLocaleDateString('he-IL', {month: 'long', year: 'numeric'});
+  document.getElementById('dash-sub').textContent = mn;
+  document.getElementById('metrics').innerHTML = `
+    <div class="mc c-primary">
+      <div class="mc-icon">👥</div>
+      <div class="mc-l">סה"כ מתאמנים</div>
+      <div class="mc-v">${clients.length}</div>
+      <div class="mc-s">${active} פעילים · ${plan} תוכנית · ${hold} קיפאון</div>
+    </div>
+    <div class="mc c-green">
+      <div class="mc-icon">💶</div>
+      <div class="mc-l">הכנסה — ${mn}</div>
+      <div class="mc-v">€${tm.toLocaleString()}</div>
+      <div class="mc-s">${tn} ${tn === 1 ? 'תשלום' : 'תשלומים'} החודש</div>
+    </div>
+    <div class="mc c-yellow">
+      <div class="mc-icon">📈</div>
+      <div class="mc-l">סה"כ הכנסות</div>
+      <div class="mc-v">€${tot.toLocaleString()}</div>
+      <div class="mc-s">מכל הזמנים</div>
+    </div>`;
+  document.getElementById('fc-l').textContent = 'הכנסה — ' + mn;
+  document.getElementById('fc-v').textContent = '€' + tm.toLocaleString();
+  document.getElementById('fc-s').textContent = tn ? `${tn} תשלומים החודש` : 'לא התקבלו תשלומים החודש';
+}
+
+function rAlerts() {
+  const al = [];
+  clients.forEach(c => {
+    if (c.status !== 'active' || !c.end) return;
+    const d = du(c.end);
+    if (d != null && d >= 0 && d <= 7) al.push({t: 'urgent', icon: '🚨', txt: `<strong>${c.name}</strong> — מסיים בעוד ${d} ימים`, id: c.id});
+    else if (d != null && d > 7 && d <= 30) al.push({t: 'warning', icon: '⚠️', txt: `<strong>${c.name}</strong> — מסיים בעוד ${d} ימים`, id: c.id});
+  });
+  clients.filter(c => c.status === 'hold').forEach(c => {
+    al.push({t: 'dormant', icon: '⏸', txt: `<strong>${c.name}</strong> — בקיפאון`, id: c.id});
+  });
+  const nb = document.getElementById('nb');
+  nb.textContent = al.length;
+  nb.className = 'ni-badge' + (al.length ? ' show' : '');
+  document.getElementById('alerts').innerHTML = al.map(a =>
+    `<div class="al ${a.t}">
+      <span class="al-icon">${a.icon}</span>
+      <span class="al-t">${a.txt}</span>
+      <span class="al-a" onclick="openDet(${a.id})">פתח ←</span>
+    </div>`
+  ).join('');
+}
+
+function rRen() {
+  const td = new Date(), lines = [];
+  for (let i = 0; i <= 2; i++) {
+    const d = new Date(td.getFullYear(), td.getMonth() + i, 1);
+    const k = d.toISOString().slice(0, 7);
+    const ex = clients.filter(c => c.end && c.end.slice(0, 7) === k && c.status === 'active');
+    if (ex.length) lines.push(`<div class="ren-item">📅 <strong>${hm(k)}:</strong> ${ex.map(c => c.name).join(', ')}</div>`);
+  }
+  document.getElementById('ren').innerHTML = lines.length ? lines.join('') : '<span style="color:var(--text-3);font-size:11px">אין חידושים קרובים</span>';
+}
+
+function rChart() {
+  const r = rec(), td = new Date(), fut = [];
+  for (let i = 1; i <= 3; i++) { const d = new Date(td.getFullYear(), td.getMonth() + i, 1); fut.push(d.toISOString().slice(0, 7)); }
+  const keys = [...new Set([...Object.keys(r).sort(), ...fut])].sort();
+  const ck = td.toISOString().slice(0, 7);
+  if (ch) ch.destroy();
+  ch = new Chart(document.getElementById('rc'), {
+    type: 'bar',
+    data: {
+      labels: keys.map(k => new Date(k + '-01').toLocaleDateString('he-IL', {month: 'short', year: '2-digit'})),
+      datasets: [{
+        data: keys.map(k => r[k]?.rev || 0),
+        backgroundColor: keys.map(k => k === ck ? '#6366f1' : k > ck ? 'rgba(99,102,241,.1)' : 'rgba(99,102,241,.45)'),
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {callbacks: {label: c => '€' + Number(c.raw).toLocaleString()}}
+      },
+      scales: {
+        x: {ticks: {color: '#94a3b8', font: {size: 9}, autoSkip: false, maxRotation: 45}, grid: {display: false}, border: {display: false}},
+        y: {ticks: {color: '#94a3b8', callback: v => '€' + v.toLocaleString(), font: {size: 9}}, grid: {color: 'rgba(226,232,240,.6)'}, border: {display: false}}
+      }
+    }
+  });
+}
+
+/* ── CLIENTS ── */
+function setSec(s, el) {
+  sec = s;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderC();
+}
+
+function renderC() {
+  const cnt = {active: 0, past: 0, hold: 0, plan: 0};
+  clients.forEach(c => { if (cnt[c.status] !== undefined) cnt[c.status]++; });
+  ['active','past','hold','plan'].forEach(s => { const el = document.getElementById('tc-' + s); if (el) el.textContent = cnt[s] ? `(${cnt[s]})` : ''; });
+  document.getElementById('tc-all').textContent = `(${clients.length})`;
+  const q = document.getElementById('srch').value.toLowerCase().trim();
+  let list = clients.filter(c => sec === 'all' || c.status === sec);
+  if (q) list = list.filter(c => c.name.toLowerCase().includes(q) || (c.country || '').toLowerCase().includes(q));
+  document.getElementById('cl-l').textContent = `${list.length} מתאמנים`;
+  document.getElementById('ctb').innerHTML = list.length
+    ? list.map(c => {
+        const d = du(c.end);
+        const rc = c.status === 'active' && d != null && d <= 7 ? 'exp-u' : c.status === 'active' && d != null && d <= 30 ? 'exp-s' : '';
+        return `<tr class="${rc}" onclick="openDet(${c.id})">
+          <td><div class="cc"><div class="av" style="background:${av(c.id)}">${ini(c.name)}</div>
+          <div><div class="cn">${c.name}</div><div class="cy">${c.country || '–'}</div></div></div></td>
+          <td class="cost">${c.cost || '–'}</td>
+          <td class="mono">${c.start ? hm(c.start.slice(0, 7)) : '–'}</td>
+          <td class="mono">${fd(c.start)}</td>
+          <td class="mono">${fd(c.end)}${d != null && d <= 30 && d >= 0 && c.status === 'active' ? ` <span style="color:var(--red);font-size:9px;font-weight:700">(${d}י')</span>` : ''}</td>
+          <td>${bdg(c.status)}</td>
+          <td class="mono" style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.notes || ''}">${c.notes || '<span style="color:#cbd5e1">—</span>'}</td>
+          <td><button class="bs" onclick="event.stopPropagation();openM(${c.id})" style="padding:4px 8px;font-size:10px">✎ עריכה</button></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="8" class="empty">אין תוצאות</td></tr>';
+}
+
+/* ── REVENUE ── */
+function rRevenue() {
+  const r = rec(), keys = Object.keys(r).sort();
+  let tot = 0;
+  document.getElementById('rm').innerHTML = keys.map(k => {
+    tot += r[k].rev;
+    return `<tr><td style="font-weight:600">${hm(k)}</td><td class="mono" style="text-align:center">${r[k].list.length}</td><td style="font-weight:700;color:var(--primary)">€${r[k].rev.toLocaleString()}</td></tr>`;
+  }).join('') + `<tr style="background:#f8fafc"><td style="font-weight:700">סה"כ</td><td></td><td style="font-weight:800;color:var(--primary)">€${tot.toLocaleString()}</td></tr>`;
+  const sorted = [...clients].filter(c => c.cost && c.start).sort((a, b) => new Date(a.start) - new Date(b.start));
+  let grand = 0;
+  document.getElementById('rc2').innerHTML = sorted.map(c => {
+    const e = eur(c.cost);
+    grand += e;
+    return `<tr onclick="openDet(${c.id})" style="cursor:pointer">
+      <td><div class="cc"><div class="av" style="background:${av(c.id)};width:22px;height:22px;font-size:8px;border-radius:7px">${ini(c.name)}</div>${c.name}</div></td>
+      <td class="mono">${hm(c.start.slice(0, 7))}</td>
+      <td style="font-weight:700">€${e.toLocaleString()}</td></tr>`;
+  }).join('') + `<tr style="background:#f8fafc"><td style="font-weight:700">סה"כ</td><td></td><td style="font-weight:800;color:var(--primary)">€${grand.toLocaleString()}</td></tr>`;
+}
+
+/* ── DETAIL PANEL ── */
+function openDet(id) {
+  did = id;
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  const dav = document.getElementById('dav');
+  dav.textContent = ini(c.name);
+  dav.style.background = av(c.id);
+  document.getElementById('dname').textContent = c.name;
+  document.getElementById('dcy').textContent = c.country || '–';
+  document.getElementById('dc').textContent = c.cost || '–';
+  document.getElementById('de').textContent = c.cost ? '€' + eur(c.cost).toLocaleString() : '–';
+  document.getElementById('dpt').textContent = c.payType === 'installments' ? 'תשלומים' : 'מכה אחת';
+  document.getElementById('dstart').textContent = fd(c.start);
+  document.getElementById('dend').textContent = fd(c.end);
+  document.getElementById('ddur').textContent = mo(c.start, c.end) ? mo(c.start, c.end) + ' חודשים' : '–';
+  document.getElementById('dstat').innerHTML = bdg(c.status);
+  document.getElementById('dnotes').textContent = c.notes || 'אין הערות';
+  const ps = document.getElementById('dprog-sec');
+  if (c.start && c.end && c.status === 'active') {
+    const s = new Date(c.start + 'T00:00:00'), e = new Date(c.end + 'T00:00:00'), n = new Date();
+    const pct = Math.min(100, Math.max(0, Math.round((n - s) / (e - s) * 100)));
+    const dl = Math.max(0, du(c.end));
+    document.getElementById('dpl').textContent = `${pct}% הושלם · ${dl} ימים נותרו`;
+    const pb = document.getElementById('dpb');
+    pb.style.width = pct + '%';
+    pb.style.background = pct > 85 ? '#ef4444' : pct > 60 ? '#f59e0b' : '#6366f1';
+    ps.style.display = 'block';
+  } else {
+    ps.style.display = 'none';
+  }
+  document.getElementById('det').classList.add('open');
+}
+function closeDet() { document.getElementById('det').classList.remove('open'); did = null; }
+function editDet() { const id = did; closeDet(); openM(id); }
+function renewC() {
+  const c = clients.find(x => x.id === did);
+  if (!c) return;
+  closeDet(); openM(null);
+  setTimeout(() => {
+    document.getElementById('mttl').textContent = 'חידוש — ' + c.name;
+    document.getElementById('fn').value = c.name;
+    document.getElementById('fcy').value = c.country === '–' ? '' : c.country;
+    document.getElementById('fc2').value = c.cost;
+    document.getElementById('fst').value = 'active';
+    if (c.end) {
+      const ns = new Date(c.end + 'T00:00:00');
+      ns.setDate(ns.getDate() + 1);
+      document.getElementById('fs2').value = ns.toISOString().slice(0, 10);
+    }
+  }, 50);
+}
+
+/* ── MODAL ── */
+function openM(id) {
+  eid = id;
+  const c = id ? clients.find(x => x.id === id) : null;
+  document.getElementById('mttl').textContent = c ? '✎ עריכת ' + c.name : '+ מתאמן חדש';
+  document.getElementById('fn').value = c?.name || '';
+  document.getElementById('fcy').value = (c?.country === '–') ? '' : c?.country || '';
+  document.getElementById('fc2').value = c?.cost || '';
+  document.getElementById('fpt').value = c?.payType || 'full';
+  document.getElementById('fst').value = c?.status || 'active';
+  document.getElementById('fs2').value = c?.start || '';
+  document.getElementById('fe').value = c?.end || '';
+  document.getElementById('fno').value = c?.notes || '';
+  document.getElementById('bdel').style.display = c ? 'inline-block' : 'none';
+  document.getElementById('mbg').classList.add('open');
+}
+function closeM() { document.getElementById('mbg').classList.remove('open'); eid = null; }
+function bgC(e) { if (e.target === document.getElementById('mbg')) closeM(); }
+
+function saveC() {
+  const name = document.getElementById('fn').value.trim();
+  if (!name) { document.getElementById('fn').focus(); return; }
+  const isNew = !eid;
+  const data = {
+    name,
+    country: document.getElementById('fcy').value.trim() || '–',
+    cost: document.getElementById('fc2').value.trim(),
+    payType: document.getElementById('fpt').value,
+    status: document.getElementById('fst').value,
+    start: document.getElementById('fs2').value || null,
+    end: document.getElementById('fe').value || null,
+    notes: document.getElementById('fno').value.trim()
+  };
+  if (eid) {
+    const i = clients.findIndex(c => c.id === eid);
+    clients[i] = {...clients[i], ...data};
+  } else {
+    const newClient = {id: nid++, ...data};
+    clients.push(newClient);
+    // Track new client for monthly email
+    trackNewClient(newClient);
+  }
+  save(); closeM(); all(); toast(isNew ? '✅ מתאמן חדש נוסף!' : '✅ נשמר בהצלחה');
+}
+
+function delC() {
+  if (!eid) return;
+  const c = clients.find(x => x.id === eid);
+  if (!confirm('למחוק את ' + c?.name + '?')) return;
+  clients = clients.filter(x => x.id !== eid);
+  save(); closeM(); all(); toast('🗑 נמחק');
+}
+
+function expCSV() {
+  const rows = [['שם','מדינה','עלות','€','אופן תשלום','סטטוס','תחילה','סיום','חודשים','הערות']];
+  clients.forEach(c => rows.push([c.name, c.country || '', c.cost || '', eur(c.cost), c.payType === 'installments' ? 'תשלומים' : 'מכה אחת', c.status, c.start || '', c.end || '', mo(c.start, c.end) || '', c.notes || '']));
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'clients.csv';
+  a.click();
+  toast('📥 CSV יוצא בהצלחה');
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ── NAVIGATION ── */
+function goPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  pg = name;
+  if (name === 'dash') { rMetrics(); rAlerts(); rRen(); setTimeout(rChart, 60); }
+  if (name === 'clients') renderC();
+  if (name === 'revenue') rRevenue();
+}
+
+function all() {
+  rMetrics(); rAlerts(); rRen();
+  if (pg === 'dash') setTimeout(rChart, 60);
+  if (pg === 'clients') renderC();
+  if (pg === 'revenue') rRevenue();
+}
+
+/* ── MONTHLY EMAIL ── */
+function trackNewClient(client) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(NEW_KEY) || '[]');
+    saved.push({id: client.id, name: client.name, cost: client.cost, addedAt: new Date().toISOString()});
+    localStorage.setItem(NEW_KEY, JSON.stringify(saved));
+  } catch(e) {}
+}
+
+function getNewClients() {
+  try { return JSON.parse(localStorage.getItem(NEW_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function clearNewClients() {
+  try { localStorage.removeItem(NEW_KEY); } catch(e) {}
+}
+
+function checkMonthlyEmail() {
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7); // "YYYY-MM"
+  let lastMonth = null;
+  try { lastMonth = localStorage.getItem(EMAIL_KEY); } catch(e) {}
+
+  if (lastMonth !== currentMonth) {
+    // New month! Show the email banner
+    const banner = document.getElementById('email-banner');
+    const mn = now.toLocaleDateString('he-IL', {month: 'long', year: 'numeric'});
+    document.getElementById('eb-sub').textContent = `חודש ${mn} התחיל — סיכום מתאמנים מוכן לשליחה`;
+    banner.classList.add('show');
+  }
+}
+
+function dismissEmailBanner() {
+  document.getElementById('email-banner').classList.remove('show');
+  // Mark as sent for this month without actually sending
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  try { localStorage.setItem(EMAIL_KEY, currentMonth); } catch(e) {}
+}
+
+function openEmailReport() {
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7);
+  const mn = now.toLocaleDateString('he-IL', {month: 'long', year: 'numeric'});
+  document.getElementById('em-month').textContent = mn;
+
+  const active = clients.filter(c => c.status === 'active');
+  const plan = clients.filter(c => c.status === 'plan');
+  const expiring = clients.filter(c => {
+    if (c.status !== 'active' || !c.end) return false;
+    const d = du(c.end);
+    return d != null && d >= 0 && d <= 30;
+  });
+  const newClients = getNewClients();
+  const r = rec();
+  const monthRev = r[currentMonth]?.rev || 0;
+
+  let html = '';
+
+  // Monthly Revenue
+  html += `<div class="em-section">
+    <div class="em-sec-title">💶 הכנסה החודש</div>
+    <div style="font-size:22px;font-weight:800;color:#4f46e5">€${monthRev.toLocaleString()}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:4px">${(r[currentMonth]?.list.length || 0)} תשלומים · ${mn}</div>
+  </div>`;
+
+  // New clients this session
+  if (newClients.length) {
+    html += `<div class="em-section">
+      <div class="em-sec-title">🆕 מתאמנים חדשים שנוספו</div>
+      ${newClients.map(c => `<div class="em-item"><div class="av" style="background:${av(c.id)}">${ini(c.name)}</div><strong>${c.name}</strong> — ${c.cost || '–'}</div>`).join('')}
+    </div>`;
+  }
+
+  // Active clients
+  html += `<div class="em-section">
+    <div class="em-sec-title">✅ מתאמנים פעילים (${active.length})</div>
+    ${active.map(c => `<div class="em-item"><div class="av" style="background:${av(c.id)}">${ini(c.name)}</div><strong>${c.name}</strong> — ${c.country || '–'} · ${c.cost || '–'}</div>`).join('')}
+  </div>`;
+
+  // Expiring soon
+  if (expiring.length) {
+    html += `<div class="em-section">
+      <div class="em-sec-title">⚠️ מסיימים בקרוב (${expiring.length})</div>
+      ${expiring.map(c => `<div class="em-item"><div class="av" style="background:${av(c.id)}">${ini(c.name)}</div><strong>${c.name}</strong> — מסיים ${fd(c.end)}</div>`).join('')}
+    </div>`;
+  }
+
+  // Plan clients
+  if (plan.length) {
+    html += `<div class="em-section">
+      <div class="em-sec-title">🔮 בניית תוכנית (${plan.length})</div>
+      ${plan.map(c => `<div class="em-item"><div class="av" style="background:${av(c.id)}">${ini(c.name)}</div><strong>${c.name}</strong> — ${c.country || '–'}</div>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('em-body').innerHTML = html;
+  document.getElementById('email-mbg').classList.add('open');
+}
+
+function closeEmailModal() {
+  document.getElementById('email-mbg').classList.remove('open');
+}
+
+function bgEmailC(e) {
+  if (e.target === document.getElementById('email-mbg')) closeEmailModal();
+}
+
+function sendMonthlyEmail() {
+  const now = new Date();
+  const mn = now.toLocaleDateString('he-IL', {month: 'long', year: 'numeric'});
+  const currentMonth = now.toISOString().slice(0, 7);
+
+  const active = clients.filter(c => c.status === 'active');
+  const newClients = getNewClients();
+  const r = rec();
+  const monthRev = r[currentMonth]?.rev || 0;
+  const expiring = clients.filter(c => {
+    if (c.status !== 'active' || !c.end) return false;
+    const d = du(c.end);
+    return d != null && d >= 0 && d <= 30;
+  });
+
+  let body = `דוח חודשי — ${mn}\n\n`;
+  body += `💶 הכנסה החודש: €${monthRev.toLocaleString()} (${r[currentMonth]?.list.length || 0} תשלומים)\n\n`;
+
+  if (newClients.length) {
+    body += `🆕 מתאמנים חדשים:\n`;
+    newClients.forEach(c => { body += `  • ${c.name} — ${c.cost || '–'}\n`; });
+    body += '\n';
+  }
+
+  body += `✅ מתאמנים פעילים (${active.length}):\n`;
+  active.forEach(c => { body += `  • ${c.name} — ${c.country || '–'} · ${c.cost || '–'} · עד ${fd(c.end)}\n`; });
+
+  if (expiring.length) {
+    body += `\n⚠️ מסיימים ב-30 הימים הקרובים:\n`;
+    expiring.forEach(c => { body += `  • ${c.name} — מסיים ${fd(c.end)}\n`; });
+  }
+
+  body += `\n---\nנשלח מ-CRM Shaked`;
+
+  const subject = encodeURIComponent(`📊 דוח CRM — ${mn}`);
+  const bodyEnc = encodeURIComponent(body);
+  const mailto = `mailto:${USER_EMAIL}?subject=${subject}&body=${bodyEnc}`;
+
+  window.location.href = mailto;
+
+  // Mark month as emailed
+  try { localStorage.setItem(EMAIL_KEY, currentMonth); } catch(e) {}
+  clearNewClients();
+
+  closeEmailModal();
+  document.getElementById('email-banner').classList.remove('show');
+  toast('📧 פותח אפליקציית מייל...');
+}
+
+init();
+</script>
+</body>
+</html>
