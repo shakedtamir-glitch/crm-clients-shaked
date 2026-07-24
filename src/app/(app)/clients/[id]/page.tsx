@@ -15,7 +15,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   const supabase = await createClient();
 
   const [
-    { data: client },
+    { data: client, error: clientError },
     { data: payments },
     { data: checkins },
     { data: communications },
@@ -42,7 +42,20 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
     supabase.from("email_templates").select("*").eq("is_active", true).order("name"),
   ]);
 
+  // `.single()` returns PGRST116 when the row genuinely doesn't exist — that's
+  // a real 404. Any other error (RLS, a failing view, a transient DB error)
+  // must surface as an error, not be masked as "page not found".
+  if (clientError && clientError.code !== "PGRST116") {
+    throw new Error(`Failed to load client: ${clientError.message}`);
+  }
   if (!client) notFound();
+
+  const { count: renewalCount } = await supabase
+    .from("activities")
+    .select("id", { count: "exact", head: true })
+    .eq("entity_type", "client")
+    .eq("entity_id", id)
+    .eq("type", "renewed");
 
   const attachmentsWithUrls: AttachmentWithUrl[] = await Promise.all(
     (attachments ?? []).map(async (a) => {
@@ -53,7 +66,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col gap-6">
-      <ClientHeader client={client as ClientOverview} coaches={coaches ?? []} />
+      <ClientHeader client={client as ClientOverview} coaches={coaches ?? []} renewalCount={renewalCount ?? 0} />
 
       <Tabs defaultValue="overview">
         <TabsList>

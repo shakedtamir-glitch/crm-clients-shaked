@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { EditClientDialog } from "@/app/(app)/clients/client-form";
+import { EditClientDialog, RenewClientDialog } from "@/app/(app)/clients/client-form";
 import { deleteClientAction } from "@/app/(app)/clients/actions";
 import type { ClientOverview } from "@/lib/supabase/types";
 
@@ -13,9 +13,11 @@ const STATUS_TONE = { active: "success", paused: "warning", ended: "neutral" } a
 export function ClientHeader({
   client,
   coaches,
+  renewalCount,
 }: {
   client: ClientOverview;
   coaches: { id: string; full_name: string | null }[];
+  renewalCount: number;
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -25,6 +27,11 @@ export function ClientHeader({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold text-text-0">{client.full_name}</h1>
             <Badge tone={STATUS_TONE[client.status]}>{client.status}</Badge>
+            {renewalCount > 0 && (
+              <Badge tone="info">
+                Renewed {renewalCount}×
+              </Badge>
+            )}
           </div>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {client.tags.map((t) => (
@@ -36,6 +43,7 @@ export function ClientHeader({
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <RenewClientDialog clientId={client.id} renewalCount={renewalCount} />
         <EditClientDialog client={client} coaches={coaches} />
         <Button
           variant="outline"

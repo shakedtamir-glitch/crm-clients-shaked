@@ -9,9 +9,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(
-    amount
-  );
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(
+      amount
+    );
+  } catch {
+    // `currency` isn't a valid ISO 4217 code (e.g. free-typed "euros") — fall
+    // back to a plain number so one bad record can't crash a whole page.
+    return `${amount.toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency}`;
+  }
 }
 
 export function formatDate(date: string | Date, options?: Intl.DateTimeFormatOptions) {

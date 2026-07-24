@@ -1,11 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, NativeSelect } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { createClientAction, updateClientAction, type FormState } from "@/app/(app)/clients/actions";
+import {
+  createClientAction,
+  updateClientAction,
+  renewClientAction,
+  type FormState,
+} from "@/app/(app)/clients/actions";
 import type { Client } from "@/lib/supabase/types";
 
 const initialState: FormState = { error: null };
@@ -96,7 +101,12 @@ function ClientFields({ client, coaches }: { client?: Client; coaches: Coach[] }
       </div>
       <div>
         <Label htmlFor="payment_currency">Currency</Label>
-        <Input id="payment_currency" name="payment_currency" defaultValue={client?.payment_currency ?? "USD"} />
+        <NativeSelect id="payment_currency" name="payment_currency" defaultValue={client?.payment_currency ?? "USD"}>
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="ILS">ILS (₪)</option>
+          <option value="GBP">GBP (£)</option>
+        </NativeSelect>
       </div>
       <div>
         <Label htmlFor="payment_frequency">Frequency</Label>
@@ -137,6 +147,43 @@ export function NewClientDialog({ coaches }: { coaches: Coach[] }) {
           {state.error && <p className="text-[13px] text-danger">{state.error}</p>}
           <Button type="submit" disabled={pending} className="justify-center">
             {pending ? "Creating…" : "Create client"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function RenewClientDialog({ clientId, renewalCount }: { clientId: string; renewalCount: number }) {
+  const action = renewClientAction.bind(null, clientId);
+  const [state, formAction, pending] = useActionState(action, initialState);
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary" size="sm">
+          <RefreshCw className="h-3.5 w-3.5" /> Renew
+        </Button>
+      </DialogTrigger>
+      <DialogContent title="Renew coaching" className="max-w-md">
+        <form action={formAction} className="flex flex-col gap-4">
+          <p className="text-[13px] text-text-2">
+            Extends the coaching end date and logs the renewal.
+            {renewalCount > 0 &&
+              ` Renewed ${renewalCount} time${renewalCount === 1 ? "" : "s"} so far.`}
+          </p>
+          <div>
+            <Label htmlFor="months">Extend by</Label>
+            <NativeSelect id="months" name="months" defaultValue="6">
+              <option value="1">1 month</option>
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+            </NativeSelect>
+          </div>
+          {state.error && <p className="text-[13px] text-danger">{state.error}</p>}
+          <Button type="submit" disabled={pending} className="justify-center">
+            {pending ? "Renewing…" : "Confirm renewal"}
           </Button>
         </form>
       </DialogContent>

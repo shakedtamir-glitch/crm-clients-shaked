@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { addMonths, format, parseISO } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -213,6 +214,70 @@ export async function deleteClientAction(id: string) {
   await supabase.from("clients").delete().eq("id", id);
   revalidatePath("/clients");
   redirect("/clients");
+}
+
+const renewSchema = z.object({
+  months: z.coerce.number().int().positive().max(60).default(6),
+});
+
+/**
+ * Renew a client's coaching: extends the end date by `months` and records the
+ * renewal as a `renewed` activity. The count of those activities is how the
+ * system "remembers" how many times a client renewed — no schema change needed,
+ * and each renewal keeps its own history (months + old/new end date) in metadata.
+ */
+export async function renewClientAction(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const parsed = renewSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { months } = parsed.data;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: client, error: fetchError } = await supabase
+    .from("clients")
+    .select("full_name, end_date")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !client) {
+    return { error: fetchError?.message ?? "Client not found" };
+  }
+
+  // Extend from the current end date when it's still in the future, otherwise
+  // from today — so renewing an already-lapsed client never back-dates the end.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const currentEnd = client.end_date ? parseISO(client.end_date) : null;
+  const base = currentEnd && currentEnd > today ? currentEnd : today;
+  const newEnd = addMonths(base, months);
+  const newEndStr = format(newEnd, "yyyy-MM-dd");
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ end_date: newEndStr, status: "active" })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await logActivity(supabase, {
+    entityType: "client",
+    entityId: id,
+    type: "renewed",
+    description: `Coaching renewed for ${months} month${months === 1 ? "" : "s"} — now through ${format(newEnd, "MMM d, yyyy")}`,
+    actorId: user?.id,
+    metadata: { months, previous_end_date: client.end_date, new_end_date: newEndStr },
+  });
+
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${id}`);
+  return { error: null };
 }
 
 const paymentSchema = z.object({
