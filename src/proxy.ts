@@ -30,8 +30,12 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
+  // API routes (e.g. /api/cron/daily) authenticate themselves — the cron
+  // invoker sends a Bearer token, not a session cookie, so redirecting it
+  // to /login here would silently block it from ever reaching the route.
+  const isApiPath = request.nextUrl.pathname.startsWith("/api");
 
-  if (!user && !isPublicPath) {
+  if (!user && !isPublicPath && !isApiPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", request.nextUrl.pathname);

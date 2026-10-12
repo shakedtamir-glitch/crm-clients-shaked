@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 
 export default function AppError({
   error,
-  unstable_retry,
+  reset,
 }: {
   error: Error & { digest?: string };
-  unstable_retry: () => void;
+  reset: () => void;
 }) {
   useEffect(() => {
     console.error(error);
@@ -32,7 +32,7 @@ export default function AppError({
       )}
 
       <div className="mt-4 flex gap-2">
-        <Button onClick={() => unstable_retry()}>Try again</Button>
+        <Button onClick={() => reset()}>Try again</Button>
         <Button variant="outline" onClick={() => (window.location.href = "/dashboard")}>
           Back to dashboard
         </Button>
