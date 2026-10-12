@@ -1,6 +1,8 @@
 import { parseISO } from "date-fns";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTemplateEmail } from "@/lib/email/send-template";
+import { sendEmail } from "@/lib/email/resend";
+import { completionEmailHtml } from "@/lib/email/completion-email";
 import { getCoachName } from "@/lib/email/variables";
 import { logActivity } from "@/lib/activity";
 import { notifyAdmins } from "@/lib/notifications/create";
@@ -8,6 +10,14 @@ import type { ClientOverview, ClientCheckin, Communication } from "@/lib/supabas
 
 const REENGAGEMENT_COOLDOWN_DAYS = 30;
 const INACTIVITY_THRESHOLD_DAYS = 30;
+// If the cron hasn't run in a while, a single run can find clients whose end
+// date was weeks/months ago. Those still get auto-archived, but we skip the
+// admin "completed" email for them — it's stale backlog, not news.
+const STALE_COMPLETION_THRESHOLD_DAYS = 14;
+
+function appUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+}
 
 async function buildVariables(supabase: ReturnType<typeof createAdminClient>, client: ClientOverview) {
   const coachName = await getCoachName(supabase, client.coach_id);
@@ -27,6 +37,9 @@ export async function runLifecycleAutomations() {
 
   const { data: overviewRaw } = await supabase.from("client_overview").select("*");
   const clients = (overviewRaw ?? []) as ClientOverview[];
+
+  const { data: admins } = await supabase.from("profiles").select("email").eq("role", "admin");
+  const adminEmails = (admins ?? []).map((a) => a.email).filter((e): e is string => Boolean(e));
 
   let completions = 0;
   let reengagements = 0;
@@ -62,6 +75,21 @@ export async function runLifecycleAutomations() {
       entityType: "client",
       entityId: client.id,
     });
+
+    const daysSinceEnd = (today.getTime() - parseISO(client.end_date).getTime()) / 86400000;
+    if (adminEmails.length > 0 && daysSinceEnd <= STALE_COMPLETION_THRESHOLD_DAYS) {
+      await sendEmail({
+        to: adminEmails,
+        subject: `${client.full_name} completed their coaching program`,
+        html: completionEmailHtml({
+          clientName: client.full_name,
+          program: client.program_type ?? "—",
+          startDate: client.start_date ?? "—",
+          endDate: client.end_date,
+          profileUrl: `${appUrl()}/clients/${client.id}`,
+        }),
+      });
+    }
 
     completions += 1;
   }
